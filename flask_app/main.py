@@ -92,14 +92,14 @@ def home():
 
 @app.route('/predict_with_timestamps', methods=['POST'])
 def predict_with_timestamps():
-    if model is None or vectorizer is None:
-        return jsonify({"error": "Model or vectorizer not loaded on server. Check server logs."}), 500
-        
     data = request.json
     comments_data = data.get('comments')
     
     if not comments_data:
         return jsonify({"error": "No comments provided"}), 400
+
+    if model is None or vectorizer is None:
+        return jsonify({"error": "Model or vectorizer not loaded on server. Check server logs."}), 500
 
     try:
         comments = [item['text'] for item in comments_data]
@@ -138,18 +138,17 @@ def predict_with_timestamps():
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if model is None or vectorizer is None:
-        return jsonify({"error": "Model or vectorizer not loaded on server. Check server logs."}), 500
-        
     data = request.json
     comments = data.get('comments')
-    print("i am the comment: ",comments)
-    print("i am the comment type: ",type(comments))
     
     if not comments:
         return jsonify({"error": "No comments provided"}), 400
 
-    try:
+    if model is None or vectorizer is None:
+        return jsonify({"error": "Model or vectorizer not loaded on server. Check server logs."}), 500
+        
+    print("i am the comment: ",comments)
+    print("i am the comment type: ",type(comments))
         # Preprocess each comment before vectorizing
         preprocessed_comments = [preprocess_comment(comment) for comment in comments]
         
