@@ -8,8 +8,7 @@ __pycache__
 .env
 data/
 notebooks/
-youtube.egg-info/
-*.pkl
+# *.pkl (Removing this to allow the vectorizer into the image)
 *.log
 Dockerfile
 .dockerignore

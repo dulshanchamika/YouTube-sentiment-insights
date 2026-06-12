@@ -70,9 +70,20 @@ def load_model_and_vectorizer(model_name, model_version, vectorizer_path):
 # Initialize the model and vectorizer
 try:
     model, vectorizer = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")
+    if vectorizer is None:
+        print("CRITICAL ERROR: Vectorizer NOT loaded from ./tfidf_vectorizer.pkl")
+    if model is None:
+        print("CRITICAL ERROR: Model NOT loaded from MLflow S3")
 except Exception as e:
-    print(f"Warning: Could not load model/vectorizer: {e}")
+    print(f"CRITICAL ERROR: Could not load model/vectorizer: {e}")
+    # In production, you might want to exit or handle this more gracefully
     model, vectorizer = None, None
+
+@app.route('/health')
+def health():
+    if model is not None and vectorizer is not None:
+        return jsonify({"status": "ready"}), 200
+    return jsonify({"status": "error", "message": "Model or vectorizer not loaded"}), 500
 
 @app.route('/')
 def home():
@@ -81,6 +92,9 @@ def home():
 
 @app.route('/predict_with_timestamps', methods=['POST'])
 def predict_with_timestamps():
+    if model is None or vectorizer is None:
+        return jsonify({"error": "Model or vectorizer not loaded on server. Check server logs."}), 500
+        
     data = request.json
     comments_data = data.get('comments')
     
@@ -124,6 +138,9 @@ def predict_with_timestamps():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    if model is None or vectorizer is None:
+        return jsonify({"error": "Model or vectorizer not loaded on server. Check server logs."}), 500
+        
     data = request.json
     comments = data.get('comments')
     print("i am the comment: ",comments)
