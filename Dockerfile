@@ -21,6 +21,10 @@ RUN python -c "import nltk; nltk.download('wordnet'); nltk.download('stopwords')
 # Copy application files
 COPY . .
 
+# Explicitly ensure models are copied (useful if they are outside the current build context logic)
+COPY lgbm_model.pkl /app/lgbm_model.pkl
+COPY tfidf_vectorizer.pkl /app/tfidf_vectorizer.pkl
+
 # Install the local project as a package (replaces -e . from requirements.txt)
 RUN pip install .
 
