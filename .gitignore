@@ -146,7 +146,7 @@ activemq-data/
 
 # SageMath parsed files
 *.sage.py
-
+yt-chrome-plugin-frontend/*
 # Environments
 .env
 .envrc
@@ -218,3 +218,4 @@ __marimo__/
 .streamlit/secrets.toml
 /lgbm_model.pkl
 /tfidf_vectorizer.pkl
+/experiment_info.json

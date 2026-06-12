@@ -109,13 +109,14 @@ def log_confusion_matrix(cm, dataset_name):
     mlflow.log_artifact(cm_file_path)
     plt.close()
 
-def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
+def save_model_info(run_id: str, model_path: str, artifact_uri: str, file_path: str) -> None:
     """Save the model run ID and path to a JSON file."""
     try:
         # Create a dictionary with the info you want to save
         model_info = {
             'run_id': run_id,
-            'model_path': model_path
+            'model_path': model_path,
+            'artifact_uri': artifact_uri
         }
         # Save the dictionary as a JSON file
         with open(file_path, 'w') as file:
@@ -127,7 +128,7 @@ def save_model_info(run_id: str, model_path: str, file_path: str) -> None:
 
 
 def main():
-    mlflow.set_tracking_uri("http://ec2-54-167-108-249.compute-1.amazonaws.com:5000/")
+    mlflow.set_tracking_uri("http://ec2-3-89-143-153.compute-1.amazonaws.com:5000/")
 
     mlflow.set_experiment('dvc-pipeline-runs')
     
@@ -166,10 +167,12 @@ def main():
                 input_example=input_example  # <--- Added input example
             )
 
-            # Save model info
-            # artifact_uri = mlflow.get_artifact_uri()
-            model_path = "lgbm_model"
-            save_model_info(run.info.run_id, model_path, 'experiment_info.json')
+            # Get the full S3 path for the logged model
+            run_id = run.info.run_id
+            full_model_uri = mlflow.get_artifact_uri("lgbm_model")
+            
+            # Save model info with the full S3 URI
+            save_model_info(run_id, full_model_uri, full_model_uri, 'experiment_info.json')
 
             # Log the vectorizer as an artifact
             mlflow.log_artifact(os.path.join(root_dir, 'tfidf_vectorizer.pkl'))
