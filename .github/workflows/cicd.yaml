@@ -44,7 +44,7 @@ jobs:
           pytest
 
   build-and-push-ecr-images:
-    name: Continuous Delivery - Build and Push Docker Images to ECR
+    name: Continuous Delivery
     needs: integration
     runs-on: ubuntu-latest
     steps:
