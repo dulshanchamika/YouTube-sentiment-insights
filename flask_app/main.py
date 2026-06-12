@@ -67,16 +67,27 @@ def load_model_and_vectorizer(model_name, model_version, vectorizer_path):
 # Initialize the model and vectorizer
 # model, vectorizer = load_model("./lgbm_model.pkl", "./tfidf_vectorizer.pkl")  
 
-# Initialize the model and vectorizer
+# Initialize the model and vectorizer separately
 try:
-    model, vectorizer = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")
-    if vectorizer is None:
-        print("CRITICAL ERROR: Vectorizer NOT loaded from ./tfidf_vectorizer.pkl")
+    # 1. Always load the local vectorizer first
+    with open("./tfidf_vectorizer.pkl", 'rb') as f:
+        vectorizer = pickle.load(f)
+    print("Vectorizer loaded from local file.")
+
+    try:
+        # 2. Try to load the model from MLflow/S3
+        model, _ = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")
+    except Exception as e:
+        print(f"S3/MLflow load failed, prepared for fallback: {e}")
+        model = None
+
     if model is None:
-        print("CRITICAL ERROR: Model NOT loaded from MLflow S3")
+         # 3. Fallback to local model if S3 failed
+         with open("./lgbm_model.pkl", 'rb') as f:
+            model = pickle.load(f)
+         print("Model loaded from local fallback.")
 except Exception as e:
-    print(f"CRITICAL ERROR: Could not load model/vectorizer: {e}")
-    # In production, you might want to exit or handle this more gracefully
+    print(f"CRITICAL ERROR: {e}")
     model, vectorizer = None, None
 
 @app.route('/health')
