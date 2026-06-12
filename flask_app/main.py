@@ -68,7 +68,11 @@ def load_model_and_vectorizer(model_name, model_version, vectorizer_path):
 # model, vectorizer = load_model("./lgbm_model.pkl", "./tfidf_vectorizer.pkl")  
 
 # Initialize the model and vectorizer
-model, vectorizer = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")  # Update paths and versions as needed
+try:
+    model, vectorizer = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")
+except Exception as e:
+    print(f"Warning: Could not load model/vectorizer: {e}")
+    model, vectorizer = None, None
 
 @app.route('/')
 def home():

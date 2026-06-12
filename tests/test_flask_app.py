@@ -1,6 +1,14 @@
 import pytest
-from flask_app.main import app
 import json
+from unittest.mock import patch, MagicMock
+
+# Mock the model and vectorizer loading specifically in the main module
+# to avoid breaking other libraries (like matplotlib) with global patches
+with patch('mlflow.pyfunc.load_model', return_value=MagicMock()), \
+     patch('pickle.load', return_value=MagicMock()), \
+     patch('flask_app.main.load_model_and_vectorizer', return_value=(MagicMock(), MagicMock())):
+    
+    from flask_app.main import app
 
 @pytest.fixture
 def client():
