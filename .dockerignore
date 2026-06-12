@@ -20,5 +20,4 @@ LICENSE
 dvc.lock
 dvc.yaml
 params.yaml
-setup.py
 experiment_info.json
