@@ -64,11 +64,28 @@ def load_model_and_vectorizer(model_name, model_version, vectorizer_path):
 #         raise
 
 
-# Initialize the model and vectorizer
-# model, vectorizer = load_model("./lgbm_model.pkl", "./tfidf_vectorizer.pkl")  
+# Initialize model artifacts lazily so importing the app does not require AWS credentials.
+model = None
+vectorizer = None
+model_load_error = None
 
-# Initialize the model and vectorizer
-model, vectorizer = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")  # Update paths and versions as needed
+
+def get_model_and_vectorizer():
+    global model, vectorizer, model_load_error
+
+    if model is not None and vectorizer is not None:
+        return model, vectorizer
+
+    if model_load_error is not None:
+        raise RuntimeError("Failed to load model and vectorizer") from model_load_error
+
+    try:
+        model, vectorizer = load_model_and_vectorizer("my_model", "2", "./tfidf_vectorizer.pkl")
+    except Exception as exc:
+        model_load_error = exc
+        raise RuntimeError("Failed to load model and vectorizer") from exc
+
+    return model, vectorizer
 
 @app.route('/')
 def home():
@@ -84,6 +101,8 @@ def predict_with_timestamps():
         return jsonify({"error": "No comments provided"}), 400
 
     try:
+        loaded_model, loaded_vectorizer = get_model_and_vectorizer()
+
         comments = [item['text'] for item in comments_data]
         timestamps = [item['timestamp'] for item in comments_data]
 
@@ -91,16 +110,16 @@ def predict_with_timestamps():
         preprocessed_comments = [preprocess_comment(comment) for comment in comments]
         
         # Transform
-        transformed_comments = vectorizer.transform(preprocessed_comments)
+        transformed_comments = loaded_vectorizer.transform(preprocessed_comments)
         
         # FIX: Create a DataFrame to match the model's training schema
         input_df = pd.DataFrame(
             transformed_comments.toarray(), 
-            columns=vectorizer.get_feature_names_out()
+            columns=loaded_vectorizer.get_feature_names_out()
         )
         
         # Predict using the DataFrame
-        predictions = model.predict(input_df).tolist()
+        predictions = loaded_model.predict(input_df).tolist()
         
         # Convert predictions to strings for consistency
         predictions = [str(pred) for pred in predictions]
@@ -129,21 +148,23 @@ def predict():
         return jsonify({"error": "No comments provided"}), 400
 
     try:
+        loaded_model, loaded_vectorizer = get_model_and_vectorizer()
+
         # Preprocess each comment before vectorizing
         preprocessed_comments = [preprocess_comment(comment) for comment in comments]
         
         # Transform comments using the vectorizer
-        transformed_comments = vectorizer.transform(preprocessed_comments)
+        transformed_comments = loaded_vectorizer.transform(preprocessed_comments)
         
         # FIX: Create a DataFrame with column names from the vectorizer
         # This aligns the input with the signature MLflow expects
         input_df = pd.DataFrame(
             transformed_comments.toarray(), 
-            columns=vectorizer.get_feature_names_out()
+            columns=loaded_vectorizer.get_feature_names_out()
         )
         
         # Make predictions using the DataFrame
-        predictions = model.predict(input_df).tolist()
+        predictions = loaded_model.predict(input_df).tolist()
         
     except Exception as e:
         # Include traceback for easier debugging
