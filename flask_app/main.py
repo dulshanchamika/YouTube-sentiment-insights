@@ -149,6 +149,10 @@ def predict():
         
     print("i am the comment: ",comments)
     print("i am the comment type: ",type(comments))
+    print("i am the comment type: ",type(comments))
+    #sadsad
+    
+    try:
         # Preprocess each comment before vectorizing
         preprocessed_comments = [preprocess_comment(comment) for comment in comments]
         
