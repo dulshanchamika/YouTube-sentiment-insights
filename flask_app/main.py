@@ -18,6 +18,7 @@ import pickle
 import pandas as pd
 import os
 from dotenv import load_dotenv
+from src.data.data_preprocessing import preprocess_comment
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,47 +26,20 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# Define the preprocessing function
-def preprocess_comment(comment):
-    """Apply preprocessing transformations to a comment."""
-    try:
-        # Convert to lowercase
-        comment = comment.lower()
-
-        # Remove trailing and leading whitespaces
-        comment = comment.strip()
-
-        # Remove newline characters
-        comment = re.sub(r'\n', ' ', comment)
-
-        # Remove non-alphanumeric characters, except punctuation
-        comment = re.sub(r'[^A-Za-z0-9\s!?.,]', '', comment)
-
-        # Remove stopwords but retain important ones for sentiment analysis
-        stop_words = set(stopwords.words('english')) - {'not', 'but', 'however', 'no', 'yet'}
-        comment = ' '.join([word for word in comment.split() if word not in stop_words])
-
-        # Lemmatize the words
-        lemmatizer = WordNetLemmatizer()
-        comment = ' '.join([lemmatizer.lemmatize(word) for word in comment.split()])
-
-        return comment
-    except Exception as e:
-        print(f"Error in preprocessing comment: {e}")
-        return comment
-
-
-
 # Load the model and vectorizer from the model registry and local storage
 def load_model_and_vectorizer(model_name, model_version, vectorizer_path):
     # Set MLflow tracking URI
-    mlflow.set_tracking_uri("http://ec2-3-89-143-153.compute-1.amazonaws.com:5000/")
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI", "http://ec2-3-89-143-153.compute-1.amazonaws.com:5000/")
+    mlflow.set_tracking_uri(tracking_uri)
     
-    # Bypass the Registry (models:/) and the proxy (mlflow-artifacts:/)
-    # Use the verified S3 path directly
-    # Path: s3://{bucket}/{experiment_id}/{run_id}/artifacts/{model_path}
-    run_id = "ce398c1ccd1b4509a75d0e10a0f2b69e"
-    model_uri = f"s3://mlflow-bucket-4545/1/{run_id}/artifacts/lgbm_model"
+    # Priority for Run ID: 
+    # 1. Env variable (MLFLOW_RUN_ID) - set this in your ECS task definition
+    # 2. Hardcoded fallback
+    run_id = os.getenv("MLFLOW_RUN_ID", "ce398c1ccd1b4509a75d0e10a0f2b69e")
+    bucket = os.getenv("S3_BUCKET_NAME", "mlflow-bucket-4545")
+    
+    model_uri = f"s3://{bucket}/1/{run_id}/artifacts/lgbm_model"
+    print(f"Loading model from: {model_uri}")
     
     # Load the model directly from S3
     model = mlflow.pyfunc.load_model(model_uri)
@@ -350,4 +324,4 @@ def generate_trend_graph():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=8080, debug=True)
